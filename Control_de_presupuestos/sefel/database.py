@@ -434,3 +434,59 @@ def obtener_resumen_costos():
 
     conexion.close()
     return datos
+
+def obtener_resumen_partidas_obra(obra_id):
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            partidas.partida,
+
+            COALESCE(
+                (
+                    SELECT SUM(p.monto)
+                    FROM presupuestos p
+                    WHERE p.obra_id = ?
+                    AND p.partida = partidas.partida
+                ),
+                0
+            ) AS presupuesto,
+
+            COALESCE(
+                (
+                    SELECT SUM(g.monto)
+                    FROM gastos g
+                    WHERE g.obra_id = ?
+                    AND g.partida = partidas.partida
+                ),
+                0
+            ) AS gastos
+
+        FROM (
+            SELECT partida
+            FROM presupuestos
+            WHERE obra_id = ?
+
+            UNION
+
+            SELECT partida
+            FROM gastos
+            WHERE obra_id = ?
+        ) AS partidas
+
+        ORDER BY partidas.partida
+        """,
+        (
+            obra_id,
+            obra_id,
+            obra_id,
+            obra_id
+        )
+    )
+
+    datos = cursor.fetchall()
+
+    conexion.close()
+    return datos
