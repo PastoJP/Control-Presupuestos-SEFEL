@@ -1,6 +1,9 @@
 from .main_view import MainView
+
 import tkinter as tk
 from tkinter import messagebox
+
+from .database import verificar_usuario
 
 from .styles import (
     COLOR_PRINCIPAL,
@@ -23,7 +26,10 @@ class LoginView:
     def __init__(self, ventana):
         self.ventana = ventana
 
-        self.ventana.title("SEFEL - Control de presupuestos y gastos")
+        self.ventana.title(
+            "SEFEL - Control de presupuestos y gastos"
+        )
+
         self.ventana.geometry("1000x650")
         self.ventana.configure(bg=COLOR_FONDO)
 
@@ -223,21 +229,34 @@ class LoginView:
 
         boton_ingresar.pack(ipady=6)
 
+        self.entrada_contrasena.bind(
+            "<Return>",
+            lambda event: self.iniciar_sesion()
+        )
+
     def iniciar_sesion(self):
+
         usuario = self.entrada_usuario.get().strip()
-        contrasena = self.entrada_contrasena.get().strip()
+        contrasena = self.entrada_contrasena.get()
+
         if not usuario or not contrasena:
             messagebox.showerror(
                 "Error",
                 "Debe ingresar usuario y contraseña."
             )
             return
-        
-        if usuario == "admin" and contrasena == "123":
-            MainView(self.ventana, usuario=usuario)
+
+        if verificar_usuario(usuario, contrasena):
+            MainView(
+                self.ventana,
+                usuario=usuario
+            )
             return
-        
+
         messagebox.showerror(
             "Error",
             "Usuario o contraseña incorrectos."
         )
+
+        self.entrada_contrasena.delete(0, tk.END)
+        self.entrada_contrasena.focus()

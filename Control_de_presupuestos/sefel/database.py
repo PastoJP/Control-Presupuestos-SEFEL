@@ -1,5 +1,8 @@
 import sqlite3
 import os
+import hashlib
+import secrets
+import hmac
 
 
 def obtener_ruta_base_datos():
@@ -23,12 +26,167 @@ def obtener_conexion():
         )
 
     conexion = sqlite3.connect(ruta)
+    conexion.execute("PRAGMA foreign_keys = ON")
     return conexion
 
+
+# SEGURIDAD DE USUARIOS
+
+def generar_hash_contrasena(contrasena, salt=None):
+    """
+    Genera un hash seguro utilizando PBKDF2-HMAC-SHA256.
+    Retorna el salt y el hash en formato hexadecimal.
+    """
+
+    if salt is None:
+        salt = secrets.token_bytes(16)
+
+    hash_contrasena = hashlib.pbkdf2_hmac(
+        "sha256",
+        contrasena.encode("utf-8"),
+        salt,
+        200000
+    )
+
+    return salt.hex(), hash_contrasena.hex()
+
+
+def verificar_hash_contrasena(contrasena, salt_hex, hash_guardado):
+    """
+    Comprueba una contraseña ingresada contra el hash
+    almacenado en la base de datos.
+    """
+
+    salt = bytes.fromhex(salt_hex)
+
+    _, hash_generado = generar_hash_contrasena(
+        contrasena,
+        salt
+    )
+
+    return hmac.compare_digest(
+        hash_generado,
+        hash_guardado
+    )
+
+
+def crear_usuario(usuario, contrasena):
+    """
+    Crea un usuario almacenando únicamente el salt y
+    el hash de la contraseña.
+    """
+
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+
+    salt, hash_contrasena = generar_hash_contrasena(
+        contrasena
+    )
+
+    try:
+        cursor.execute(
+            """
+            INSERT INTO usuarios (
+                usuario,
+                password_hash,
+                salt
+            )
+            VALUES (?, ?, ?)
+            """,
+            (
+                usuario,
+                hash_contrasena,
+                salt
+            )
+        )
+
+        conexion.commit()
+        return True
+
+    except sqlite3.IntegrityError:
+        return False
+
+    finally:
+        conexion.close()
+
+
+def verificar_usuario(usuario, contrasena):
+    """
+    Verifica que el usuario exista y que la contraseña
+    coincida con el hash almacenado.
+    """
+
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+
+    cursor.execute(
+        """
+        SELECT password_hash, salt
+        FROM usuarios
+        WHERE usuario = ?
+        """,
+        (usuario,)
+    )
+
+    resultado = cursor.fetchone()
+
+    conexion.close()
+
+    if resultado is None:
+        return False
+
+    hash_guardado, salt = resultado
+
+    return verificar_hash_contrasena(
+        contrasena,
+        salt,
+        hash_guardado
+    )
+
+
+def crear_usuario_administrador():
+    """
+    Crea el usuario administrador inicial solamente
+    si todavía no existe.
+    """
+
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+
+    cursor.execute(
+        """
+        SELECT id
+        FROM usuarios
+        WHERE usuario = ?
+        """,
+        ("admin",)
+    )
+
+    usuario_existente = cursor.fetchone()
+
+    conexion.close()
+
+    if usuario_existente is None:
+        crear_usuario(
+            "admin",
+            "123"
+        )
+
+
+# CREACIÓN DE BASE DE DATOS
 
 def crear_base_datos():
     conexion = obtener_conexion()
     cursor = conexion.cursor()
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS usuarios (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            usuario TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            salt TEXT NOT NULL
+        )
+    """)
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS obras (
@@ -63,6 +221,10 @@ def crear_base_datos():
     conexion.commit()
     conexion.close()
 
+    crear_usuario_administrador()
+
+
+# OBRAS
 
 def agregar_obra(nombre, descripcion):
     conexion = obtener_conexion()
@@ -97,6 +259,8 @@ def obtener_obras():
     conexion.close()
     return obras
 
+
+# PRESUPUESTOS
 
 def agregar_presupuesto(obra_id, partida, monto):
     conexion = obtener_conexion()
@@ -156,6 +320,8 @@ def obtener_total_presupuesto_obra(obra_id):
     conexion.close()
     return total
 
+
+# GASTOS
 
 def agregar_gasto(obra_id, partida, concepto, monto, fecha):
     conexion = obtener_conexion()
@@ -229,6 +395,8 @@ def obtener_total_gastos_obra(obra_id):
     conexion.close()
     return total
 
+
+# COMPARACIÓN DE COSTOS
 
 def obtener_resumen_costos():
     conexion = obtener_conexion()
