@@ -490,3 +490,38 @@ def obtener_resumen_partidas_obra(obra_id):
 
     conexion.close()
     return datos
+
+def actualizar_gasto(
+    gasto_id,
+    obra_id,
+    partida,
+    concepto,
+    monto,
+    fecha
+):
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+
+    cursor.execute(
+        """
+        UPDATE gastos
+        SET
+            obra_id = ?,
+            partida = ?,
+            concepto = ?,
+            monto = ?,
+            fecha = ?
+        WHERE id = ?
+        """,
+        (
+            obra_id,
+            partida,
+            concepto,
+            monto,
+            fecha,
+            gasto_id
+        )
+    )
+
+    conexion.commit()
+    conexion.close()
