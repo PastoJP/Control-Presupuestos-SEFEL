@@ -15,7 +15,12 @@ from .styles import (
 )
 
 from .obra_form import ObraForm
-from .database import obtener_obras
+
+from .database import (
+    obtener_obras,
+    obtener_total_presupuesto_obra,
+    obtener_total_gastos_obra
+)
 
 
 class MainView:
@@ -429,17 +434,26 @@ class MainView:
 
         for obra in obras:
 
+            obra_id = obra[0]
             nombre = obra[1]
 
             if filtro == "" or filtro in nombre.lower():
+
+                presupuesto = obtener_total_presupuesto_obra(
+                    obra_id
+                )
+
+                gastos = obtener_total_gastos_obra(
+                    obra_id
+                )
 
                 self.tabla.insert(
                     "",
                     "end",
                     values=(
                         nombre,
-                        "$ 0",
-                        "$ 0",
+                        f"$ {presupuesto:,.0f}",
+                        f"$ {gastos:,.0f}",
                         "Ver costos"
                     )
                 )
@@ -457,7 +471,10 @@ class MainView:
         if not seleccion:
             return
 
-        item = self.tabla.item(seleccion[0])
+        item = self.tabla.item(
+            seleccion[0]
+        )
+
         valores = item["values"]
 
         if not valores:
