@@ -1,7 +1,6 @@
 from .main_view import MainView
 
 import tkinter as tk
-from tkinter import messagebox
 
 from .database import verificar_usuario
 
@@ -25,6 +24,9 @@ class LoginView:
 
     def __init__(self, ventana):
         self.ventana = ventana
+
+        self.intentos_fallidos = 0
+        self.bloqueado = False
 
         self.ventana.title(
             "SEFEL - Control de presupuestos y gastos"
@@ -211,7 +213,19 @@ class LoginView:
 
         self.entrada_contrasena.pack(
             ipady=6,
-            pady=(5, 20)
+            pady=(5, 10)
+        )
+
+        self.label_mensaje = tk.Label(
+            tarjeta,
+            text="",
+            bg=COLOR_BLANCO,
+            fg="red",
+            font=("Arial", 9)
+        )
+
+        self.label_mensaje.pack(
+            pady=(0, 10)
         )
 
         boton_ingresar = tk.Button(
@@ -236,27 +250,94 @@ class LoginView:
 
     def iniciar_sesion(self):
 
+        if self.bloqueado:
+            return
+
         usuario = self.entrada_usuario.get().strip()
         contrasena = self.entrada_contrasena.get()
 
         if not usuario or not contrasena:
-            messagebox.showerror(
-                "Error",
-                "Debe ingresar usuario y contraseña."
+            self.label_mensaje.config(
+                text="Debe ingresar usuario y contraseña."
             )
             return
 
         if verificar_usuario(usuario, contrasena):
+
+            self.intentos_fallidos = 0
+
             MainView(
                 self.ventana,
                 usuario=usuario
             )
+
             return
 
-        messagebox.showerror(
-            "Error",
-            "Usuario o contraseña incorrectos."
+        self.intentos_fallidos += 1
+
+        intentos_restantes = 3 - self.intentos_fallidos
+
+        self.entrada_contrasena.delete(
+            0,
+            tk.END
         )
 
-        self.entrada_contrasena.delete(0, tk.END)
         self.entrada_contrasena.focus()
+
+        if self.intentos_fallidos >= 3:
+
+            self.bloquear_login()
+
+            return
+
+        self.label_mensaje.config(
+            text=(
+                "Usuario o contraseña incorrectos. "
+                f"Intentos restantes: {intentos_restantes}"
+            )
+        )
+
+    def bloquear_login(self):
+
+        self.bloqueado = True
+
+        self.entrada_usuario.config(
+            state="disabled"
+        )
+
+        self.entrada_contrasena.config(
+            state="disabled"
+        )
+
+        self.label_mensaje.config(
+            text="Acceso bloqueado por un minuto :C ."
+        )
+
+        self.ventana.after(
+            60000,
+            self.desbloquear_login
+        )
+
+    def desbloquear_login(self):
+
+        self.bloqueado = False
+        self.intentos_fallidos = 0
+
+        self.entrada_usuario.config(
+            state="normal"
+        )
+
+        self.entrada_contrasena.config(
+            state="normal"
+        )
+
+        self.entrada_contrasena.delete(
+            0,
+            tk.END
+        )
+
+        self.label_mensaje.config(
+            text=""
+        )
+
+        self.entrada_usuario.focus()
