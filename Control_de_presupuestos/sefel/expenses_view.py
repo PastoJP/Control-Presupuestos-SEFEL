@@ -25,9 +25,10 @@ from .database import (
 
 class ExpensesView:
 
-    def __init__(self, ventana, usuario):
+    def __init__(self, ventana, usuario, rol="administrador"):
         self.ventana = ventana
         self.usuario = usuario
+        self.rol = rol
         self.obras = []
 
         # Guarda el ID del gasto que se está editando.
@@ -175,12 +176,23 @@ class ExpensesView:
             pady=(8, 20)
         )
 
-        self.crear_formulario(contenido)
+        if self.rol != "gerencia":
+            self.crear_formulario(contenido)
+        else:
+            tk.Label(
+                contenido,
+                text="Modo consulta - Gerencia",
+                bg=COLOR_FONDO,
+                fg=COLOR_TEXTO_SECUNDARIO,
+                font=FUENTE_NORMAL_NEGRITA
+            ).pack(
+                anchor="w",
+                pady=(0, 15)
+            )
+            
         self.crear_tabla(contenido)
 
-    # =====================================================
     # FORMULARIO
-    # =====================================================
 
     def crear_formulario(self, contenido):
         self.panel_formulario = tk.Frame(
@@ -213,9 +225,7 @@ class ExpensesView:
             pady=(0, 15)
         )
 
-        # -------------------------------------------------
         # OBRA
-        # -------------------------------------------------
 
         tk.Label(
             self.panel_formulario,
@@ -244,9 +254,7 @@ class ExpensesView:
             pady=(5, 10)
         )
 
-        # -------------------------------------------------
         # PARTIDA
-        # -------------------------------------------------
 
         tk.Label(
             self.panel_formulario,
@@ -274,9 +282,7 @@ class ExpensesView:
             pady=(5, 10)
         )
 
-        # -------------------------------------------------
         # CONCEPTO
-        # -------------------------------------------------
 
         tk.Label(
             self.panel_formulario,
@@ -304,9 +310,7 @@ class ExpensesView:
             pady=(5, 10)
         )
 
-        # -------------------------------------------------
         # MONTO
-        # -------------------------------------------------
 
         tk.Label(
             self.panel_formulario,
@@ -334,9 +338,7 @@ class ExpensesView:
             pady=(5, 10)
         )
 
-        # -------------------------------------------------
         # FECHA
-        # -------------------------------------------------
 
         tk.Label(
             self.panel_formulario,
@@ -369,9 +371,7 @@ class ExpensesView:
             "18-11-2026"
         )
 
-        # -------------------------------------------------
         # BOTONES
-        # -------------------------------------------------
 
         self.frame_botones = tk.Frame(
             self.panel_formulario,
@@ -434,9 +434,7 @@ class ExpensesView:
 
         self.cargar_obras()
 
-    # =====================================================
     # TABLA
-    # =====================================================
 
     def crear_tabla(self, contenido):
         panel_tabla = tk.Frame(
@@ -485,11 +483,12 @@ class ExpensesView:
             cursor="hand2"
         )
 
-        boton_editar.pack(
-            side="right",
-            ipadx=8,
-            ipady=3
-        )
+        if self.rol != "gerencia":
+            boton_editar.pack(
+                side="right",
+                ipadx=8,
+                ipady=3
+            )
 
         columnas = (
             "obra",
@@ -562,15 +561,23 @@ class ExpensesView:
             expand=True
         )
 
-        # También permite editar con doble clic.
-        self.tabla.bind(
-            "<Double-1>",
+        if self.rol != "gerencia":
+            self.tabla.bind(
+                "<Double-1>",
             self.editar_gasto_seleccionado
         )
 
+        if self.rol == "gerencia":
+            texto_ayuda = "Modo consulta: puede revisar los gastos registrados."
+        else:
+            texto_ayuda = (
+                "Seleccione un gasto y presione Editar gasto seleccionado "
+                "o haga doble clic sobre él."
+            )
+
         tk.Label(
             panel_tabla,
-            text="Seleccione un gasto y presione Editar gasto seleccionado o haga doble clic sobre él.",
+            text=texto_ayuda,
             bg=COLOR_BLANCO,
             fg=COLOR_TEXTO_SECUNDARIO,
             font=("Arial", 9)
@@ -578,12 +585,9 @@ class ExpensesView:
             anchor="w",
             pady=(10, 0)
         )
-
         self.cargar_gastos()
 
-    # =====================================================
     # OBRAS
-    # =====================================================
 
     def cargar_obras(self):
         self.obras = obtener_obras()
@@ -595,9 +599,7 @@ class ExpensesView:
 
         self.combo_obra["values"] = nombres
 
-    # =====================================================
     # VALIDACIONES
-    # =====================================================
 
     def obtener_datos_formulario(self):
         indice = self.combo_obra.current()
@@ -708,9 +710,7 @@ class ExpensesView:
             fecha
         )
 
-    # =====================================================
     # GUARDAR NUEVO GASTO
-    # =====================================================
 
     def guardar_gasto(self):
         # Si estamos editando, el mismo botón guarda cambios.
@@ -746,9 +746,7 @@ class ExpensesView:
 
         self.cargar_gastos()
 
-    # =====================================================
     # EDITAR GASTO
-    # =====================================================
 
     def editar_gasto_seleccionado(self, event=None):
         seleccion = self.tabla.selection()
@@ -871,9 +869,7 @@ class ExpensesView:
 
         self.entrada_concepto.focus()
 
-    # =====================================================
     # GUARDAR CAMBIOS
-    # =====================================================
 
     def guardar_cambios(self):
         if self.gasto_editando_id is None:
@@ -908,9 +904,7 @@ class ExpensesView:
 
         self.cargar_gastos()
 
-    # =====================================================
     # CANCELAR EDICIÓN
-    # =====================================================
 
     def cancelar_edicion(self):
         self.gasto_editando_id = None
@@ -933,9 +927,7 @@ class ExpensesView:
                 fila
             )
 
-    # =====================================================
     # LIMPIAR FORMULARIO
-    # =====================================================
 
     def limpiar_formulario(self):
         self.combo_obra.set("")
@@ -965,9 +957,7 @@ class ExpensesView:
             "18-11-2026"
         )
 
-    # =====================================================
     # CARGAR GASTOS
-    # =====================================================
 
     def cargar_gastos(self):
         for registro in self.tabla.get_children():
@@ -1001,16 +991,15 @@ class ExpensesView:
 
             self.ids_gastos[fila] = gasto_id
 
-    # =====================================================
     # NAVEGACIÓN
-    # =====================================================
 
     def ir_obras(self):
         from .main_view import MainView
 
         MainView(
             self.ventana,
-            self.usuario
+            self.usuario,
+            self.rol
         )
 
     def ir_presupuestos(self):
@@ -1018,7 +1007,8 @@ class ExpensesView:
 
         BudgetView(
             self.ventana,
-            self.usuario
+            self.usuario,
+            self.rol
         )
 
     def ir_comparacion(self):
@@ -1026,5 +1016,6 @@ class ExpensesView:
 
         CompareView(
             self.ventana,
-            self.usuario
+            self.usuario,
+            self.rol
         )

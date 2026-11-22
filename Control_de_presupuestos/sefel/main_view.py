@@ -25,9 +25,10 @@ from .database import (
 
 class MainView:
 
-    def __init__(self, ventana, usuario="Administración"):
+    def __init__(self,ventana,usuario="Administración",rol="administrador"):
         self.ventana = ventana
         self.usuario = usuario
+        self.rol = rol
 
         self.limpiar_ventana()
         self.crear_interfaz()
@@ -91,6 +92,7 @@ class MainView:
         self.crear_contenido_principal(cuerpo)
 
     def crear_menu_lateral(self, cuerpo):
+
         menu = tk.Frame(
             cuerpo,
             bg=COLOR_BLANCO,
@@ -118,12 +120,20 @@ class MainView:
             pady=(20, 10)
         )
 
-        opciones = [
-            ("Obras", None),
-            ("Presupuestos", self.ir_presupuestos),
-            ("Gastos", self.ir_gastos),
-            ("Comparar costos", self.ir_comparacion)
-        ]
+        if self.rol == "gerencia":
+            opciones = [
+                ("Obras", None),
+                ("Presupuestos", self.ir_presupuestos),
+                ("Gastos", self.ir_gastos),
+                ("Comparar costos", self.ir_comparacion)
+            ]
+        else:
+            opciones = [
+                ("Obras", None),
+                ("Presupuestos", self.ir_presupuestos),
+                ("Gastos", self.ir_gastos),
+                ("Comparar costos", self.ir_comparacion)
+            ]
 
         for texto, comando in opciones:
 
@@ -327,11 +337,12 @@ class MainView:
             width=15
         )
 
-        boton_nueva_obra.pack(
-            side="right",
-            padx=(20, 0),
-            ipady=5
-        )
+        if self.rol != "gerencia":
+            boton_nueva_obra.pack(
+                side="right",
+                padx=(20, 0),
+                ipady=5
+            )
 
         columnas = (
             "obra",
@@ -487,7 +498,8 @@ class MainView:
         CompareView(
             self.ventana,
             self.usuario,
-            nombre_obra
+            rol=self.rol,
+            obra_seleccionada=nombre_obra
         )
 
     def ir_presupuestos(self):
@@ -495,7 +507,8 @@ class MainView:
 
         BudgetView(
             self.ventana,
-            self.usuario
+            self.usuario,
+            self.rol
         )
 
     def ir_gastos(self):
@@ -503,7 +516,8 @@ class MainView:
 
         ExpensesView(
             self.ventana,
-            self.usuario
+            self.usuario,
+            self.rol
         )
 
     def ir_comparacion(self):
@@ -511,7 +525,8 @@ class MainView:
 
         CompareView(
             self.ventana,
-            self.usuario
+            self.usuario,
+            rol=self.rol
         )
 
     def cerrar_sesion(self, event=None):

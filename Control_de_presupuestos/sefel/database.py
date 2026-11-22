@@ -70,10 +70,14 @@ def verificar_hash_contrasena(contrasena, salt_hex, hash_guardado):
     )
 
 
-def crear_usuario(usuario, contrasena):
+def crear_usuario(
+    usuario,
+    contrasena,
+    rol="administrador"
+):
     """
-    Crea un usuario almacenando únicamente el salt y
-    el hash de la contraseña.
+    Crea un usuario almacenando únicamente el salt,
+    el hash de la contraseña y su rol.
     """
 
     conexion = obtener_conexion()
@@ -89,14 +93,16 @@ def crear_usuario(usuario, contrasena):
             INSERT INTO usuarios (
                 usuario,
                 password_hash,
-                salt
+                salt,
+                rol
             )
-            VALUES (?, ?, ?)
+            VALUES (?, ?, ?, ?)
             """,
             (
                 usuario,
                 hash_contrasena,
-                salt
+                salt,
+                rol
             )
         )
 
@@ -143,6 +149,28 @@ def verificar_usuario(usuario, contrasena):
         hash_guardado
     )
 
+def obtener_rol_usuario(usuario):
+
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+
+    cursor.execute(
+        """
+        SELECT rol
+        FROM usuarios
+        WHERE usuario = ?
+        """,
+        (usuario,)
+    )
+
+    resultado = cursor.fetchone()
+
+    conexion.close()
+
+    if resultado:
+        return resultado[0]
+
+    return None
 
 def crear_usuario_administrador():
     """
@@ -172,6 +200,34 @@ def crear_usuario_administrador():
             "123"
         )
 
+def crear_usuario_gerencia():
+    """
+    Crea el usuario de gerencia solamente
+    si todavía no existe.
+    """
+
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+
+    cursor.execute(
+        """
+        SELECT id
+        FROM usuarios
+        WHERE usuario = ?
+        """,
+        ("gerencia",)
+    )
+
+    usuario_existente = cursor.fetchone()
+
+    conexion.close()
+
+    if usuario_existente is None:
+        crear_usuario(
+            "gerencia",
+            "123",
+            "gerencia"
+        )
 
 # CREACIÓN DE BASE DE DATOS
 
@@ -179,14 +235,35 @@ def crear_base_datos():
     conexion = obtener_conexion()
     cursor = conexion.cursor()
 
-    cursor.execute("""
+    cursor.execute(
+        """
         CREATE TABLE IF NOT EXISTS usuarios (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            usuario TEXT NOT NULL UNIQUE,
+            usuario TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
-            salt TEXT NOT NULL
+            salt TEXT NOT NULL,
+            rol TEXT NOT NULL DEFAULT 'administrador'
         )
-    """)
+        """
+    )
+
+    cursor.execute(
+        "PRAGMA table_info(usuarios)"
+    )
+
+    columnas_usuarios = [
+        columna[1]
+        for columna in cursor.fetchall()
+    ]
+
+    if "rol" not in columnas_usuarios:
+        cursor.execute(
+            """
+            ALTER TABLE usuarios
+            ADD COLUMN rol TEXT NOT NULL
+            DEFAULT 'administrador'
+            """
+        )
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS obras (
@@ -222,6 +299,7 @@ def crear_base_datos():
     conexion.close()
 
     crear_usuario_administrador()
+    crear_usuario_gerencia()
 
 
 # OBRAS

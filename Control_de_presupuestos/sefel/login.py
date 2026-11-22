@@ -2,7 +2,7 @@ from .main_view import MainView
 
 import tkinter as tk
 
-from .database import verificar_usuario
+from .database import (verificar_usuario, obtener_rol_usuario)
 
 from .styles import (
     COLOR_PRINCIPAL,
@@ -266,9 +266,14 @@ class LoginView:
 
             self.intentos_fallidos = 0
 
+            rol = obtener_rol_usuario(
+                usuario
+            )
+
             MainView(
                 self.ventana,
-                usuario=usuario
+                usuario=usuario,
+                rol=rol
             )
 
             return

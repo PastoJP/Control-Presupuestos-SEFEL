@@ -23,9 +23,10 @@ from .database import (
 
 class BudgetView:
 
-    def __init__(self, ventana, usuario):
+    def __init__(self,ventana,usuario,rol="administrador"):
         self.ventana = ventana
         self.usuario = usuario
+        self.rol = rol
         self.obras = []
 
         self.limpiar()
@@ -163,7 +164,20 @@ class BudgetView:
             pady=(8, 20)
         )
 
-        self.crear_formulario(contenido)
+        if self.rol != "gerencia":
+            self.crear_formulario(contenido)
+        else:
+            tk.Label(
+                contenido,
+                text="Modo consulta - Gerencia",
+                bg=COLOR_FONDO,
+                fg=COLOR_TEXTO_SECUNDARIO,
+                font=FUENTE_NORMAL_NEGRITA
+            ).pack(
+                anchor="w",
+                pady=(0, 15)
+            )
+
         self.crear_tabla(contenido)
 
     def crear_formulario(self, contenido):
@@ -478,7 +492,8 @@ class BudgetView:
 
         MainView(
             self.ventana,
-            self.usuario
+            self.usuario,
+            self.rol
         )
 
     def ir_gastos(self):
@@ -486,7 +501,8 @@ class BudgetView:
 
         ExpensesView(
             self.ventana,
-            self.usuario
+            self.usuario,
+            self.rol
         )
 
     def ir_comparacion(self):
@@ -494,5 +510,6 @@ class BudgetView:
 
         CompareView(
             self.ventana,
-            self.usuario
+            self.usuario,
+            rol=self.rol
         )

@@ -24,9 +24,16 @@ COLOR_DEFICIT = "#f37681"
 
 class CompareView:
 
-    def __init__(self, ventana, usuario, obra_seleccionada=None):
+    def __init__(
+        self,
+        ventana,
+        usuario,
+        rol="administrador",
+        obra_seleccionada=None
+    ):
         self.ventana = ventana
         self.usuario = usuario
+        self.rol = rol
         self.obra_seleccionada = obra_seleccionada
 
         self.ids_obras = {}
@@ -445,12 +452,29 @@ class CompareView:
 
     def ir_obras(self):
         from .main_view import MainView
-        MainView(self.ventana, self.usuario)
+
+        MainView(
+            self.ventana,
+            self.usuario,
+            self.rol
+        )
+
 
     def ir_presupuestos(self):
         from .budget_view import BudgetView
-        BudgetView(self.ventana, self.usuario)
+
+        BudgetView(
+            self.ventana,
+            self.usuario,
+            self.rol
+        )
+
 
     def ir_gastos(self):
         from .expenses_view import ExpensesView
-        ExpensesView(self.ventana, self.usuario)
+
+        ExpensesView(
+            self.ventana,
+            self.usuario,
+            self.rol
+        )
