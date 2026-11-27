@@ -130,6 +130,7 @@ class ExpensesView:
         opciones = [
             ("Obras", self.ir_obras),
             ("Recursos", self.ir_recursos),
+            ("Partidas", self.ir_partidas),
             ("Presupuestos", self.ir_presupuestos),
             ("Gastos", None),
             ("Comparar costos", self.ir_comparacion)
@@ -154,6 +155,62 @@ class ExpensesView:
                     else FUENTE_NORMAL
                 )
             ).pack(fill="x")
+
+        # ==================================================
+        # INFORMACIÓN DEL USUARIO Y CIERRE DE SESIÓN
+        # ==================================================
+
+        # Crea un espacio expandible para mantener
+        # los datos del usuario en la parte inferior
+        # del menú lateral.
+
+        tk.Frame(
+            menu,
+            bg=COLOR_BLANCO
+        ).pack(fill="both", expand=True)
+
+        # Separa visualmente las opciones de navegación
+        # de la información de la sesión actual.
+
+        tk.Frame(
+            menu,
+            bg=COLOR_LINEA,
+            height=1
+        ).pack(fill="x", padx=15)
+
+        # Muestra el nombre del usuario conectado
+        # para identificar quién utiliza la aplicación.
+
+        tk.Label(
+            menu,
+            text=f"Usuario: {self.usuario}",
+            bg=COLOR_BLANCO,
+            fg=COLOR_TEXTO_SECUNDARIO,
+            font=("Arial", 8)
+        ).pack(
+            anchor="w",
+            padx=20,
+            pady=(10, 5)
+        )
+
+        # Permite finalizar la sesión directamente
+        # desde el módulo de Gastos, sin necesidad
+        # de navegar hacia otra pantalla.
+
+        tk.Button(
+            menu,
+            text="Cerrar sesión",
+            command=self.cerrar_sesion,
+            bg=COLOR_BLANCO,
+            fg=COLOR_TEXTO,
+            relief="flat",
+            font=("Arial", 8, "bold"),
+            cursor="hand2"
+        ).pack(
+            anchor="w",
+            padx=15,
+            pady=(0, 20)
+        )
 
     def crear_contenido(self, cuerpo):
         contenido = tk.Frame(
@@ -1024,6 +1081,25 @@ class ExpensesView:
             self.rol
         )
 
+    def ir_partidas(self):
+
+        # Importamos la pantalla del maestro de partidas
+        # dentro de la función para evitar importaciones
+        # circulares entre los diferentes módulos.
+
+        from .partidas_view import PartidasView
+
+        # Abrimos la pantalla utilizando la misma ventana
+        # y conservando los datos de la sesión actual.
+        # Esto permite mantener los permisos del usuario
+        # durante la navegación entre módulos.
+
+        PartidasView(
+            self.ventana,
+            self.usuario,
+            self.rol
+        )
+
     # NAVEGACIÓN
 
     def ir_obras(self):
@@ -1052,3 +1128,26 @@ class ExpensesView:
             self.usuario,
             self.rol
         )
+
+    # ==================================================
+    # CIERRE DE SESIÓN
+    # ==================================================
+
+    def cerrar_sesion(self):
+
+        # Importamos la pantalla de inicio de sesión
+        # dentro de la función para evitar dependencias
+        # circulares entre los diferentes módulos.
+
+        from .login import LoginView
+
+        # Elimina los componentes gráficos de Gastos
+        # sin cerrar la aplicación ni eliminar
+        # los registros almacenados en SQLite.
+
+        self.limpiar()
+
+        # Regresa a la pantalla de inicio de sesión
+        # para permitir el ingreso de otro usuario.
+
+        LoginView(self.ventana)

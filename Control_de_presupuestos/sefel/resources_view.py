@@ -165,6 +165,7 @@ class ResourcesView:
         opciones = [
             ("Obras", self.ir_obras),
             ("Recursos", None),
+            ("Partidas", self.ir_partidas),
             ("Presupuestos", self.ir_presupuestos),
             ("Gastos", self.ir_gastos),
             ("Comparar costos", self.ir_comparacion)
@@ -992,6 +993,25 @@ class ResourcesView:
         from .main_view import MainView
 
         MainView(
+            self.ventana,
+            self.usuario,
+            self.rol
+        )
+
+    def ir_partidas(self):
+
+        # Importamos la pantalla del maestro de partidas
+        # dentro de la función para evitar importaciones
+        # circulares entre los diferentes módulos.
+
+        from .partidas_view import PartidasView
+
+        # Abrimos la pantalla utilizando la misma ventana
+        # y conservando los datos de la sesión actual.
+        # Esto permite mantener los permisos del usuario
+        # durante la navegación entre módulos.
+
+        PartidasView(
             self.ventana,
             self.usuario,
             self.rol

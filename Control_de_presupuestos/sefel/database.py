@@ -325,6 +325,33 @@ def crear_base_datos():
         )
     """)
 
+    # ======================================================
+    # MAESTRO DE PARTIDAS
+    # ======================================================
+
+    # Crea una tabla para almacenar las actividades
+    # constructivas que serán utilizadas en los APU
+    # y en la elaboración de presupuestos.
+    #
+    # IF NOT EXISTS evita crear nuevamente la tabla
+    # si ya existe, conservando los datos anteriores.
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS partidas (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            codigo TEXT NOT NULL UNIQUE COLLATE NOCASE
+                CHECK (length(trim(codigo)) > 0),
+            nombre TEXT NOT NULL
+                CHECK (length(trim(nombre)) > 0),
+            descripcion TEXT NOT NULL DEFAULT '',
+            unidad TEXT NOT NULL
+                CHECK (length(trim(unidad)) > 0),
+            activo INTEGER NOT NULL DEFAULT 1 CHECK (
+                activo IN (0, 1)
+            )
+        )
+    """)
+
     conexion.commit()
     conexion.close()
 
@@ -883,6 +910,236 @@ def buscar_recursos(texto):
             WHERE codigo LIKE ?
                OR nombre LIKE ?
                OR categoria LIKE ?
+            ORDER BY nombre ASC
+        """, (
+            busqueda,
+            busqueda,
+            busqueda
+        ))
+
+        return cursor.fetchall()
+
+    finally:
+        conexion.close()
+
+# ==========================================================
+# MAESTRO DE PARTIDAS
+# ==========================================================
+
+# Estas funciones permiten administrar las actividades
+# constructivas almacenadas en la base de datos.
+# Posteriormente serán utilizadas por la interfaz gráfica,
+# el módulo APU y la elaboración de presupuestos.
+
+
+def agregar_partida(codigo, nombre, descripcion, unidad):
+    """
+    Registra una nueva partida constructiva.
+    La partida queda activa de manera predeterminada.
+    """
+
+    # Abre la conexión con la base de datos SQLite.
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+
+    try:
+        # INSERT INTO agrega un nuevo registro.
+        # Los parámetros ? ayudan a prevenir inyecciones SQL
+        # al separar los datos de las instrucciones SQL.
+        cursor.execute("""
+            INSERT INTO partidas (
+                codigo,
+                nombre,
+                descripcion,
+                unidad
+            )
+            VALUES (?, ?, ?, ?)
+        """, (
+            codigo.strip().upper(),
+            nombre.strip(),
+            descripcion.strip(),
+            unidad.strip()
+        ))
+
+        # Guarda los cambios permanentemente.
+        conexion.commit()
+
+        return True
+
+    except sqlite3.IntegrityError:
+
+        # Controla errores de integridad, como códigos
+        # duplicados o campos obligatorios vacíos.
+        conexion.rollback()
+        return False
+
+    finally:
+
+        # Cierra la conexión incluso si ocurre un error.
+        conexion.close()
+
+
+def obtener_partidas():
+    """
+    Consulta todas las partidas registradas,
+    incluyendo las activas e inactivas.
+    """
+
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+
+    try:
+        # SELECT recupera los campos de la tabla.
+        # ORDER BY organiza las partidas alfabéticamente.
+        cursor.execute("""
+            SELECT
+                id,
+                codigo,
+                nombre,
+                descripcion,
+                unidad,
+                activo
+            FROM partidas
+            ORDER BY nombre ASC
+        """)
+
+        # Devuelve los registros como una lista de tuplas.
+        return cursor.fetchall()
+
+    finally:
+        conexion.close()
+
+
+def actualizar_partida(
+    partida_id,
+    codigo,
+    nombre,
+    descripcion,
+    unidad
+):
+    """
+    Modifica los datos de una partida existente
+    utilizando su identificador interno.
+    """
+
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+
+    try:
+        # UPDATE modifica la información almacenada.
+        # WHERE id = ? limita la modificación a la
+        # partida seleccionada por el usuario.
+        cursor.execute("""
+            UPDATE partidas
+            SET
+                codigo = ?,
+                nombre = ?,
+                descripcion = ?,
+                unidad = ?
+            WHERE id = ?
+        """, (
+            codigo.strip().upper(),
+            nombre.strip(),
+            descripcion.strip(),
+            unidad.strip(),
+            partida_id
+        ))
+
+        conexion.commit()
+
+        # Comprueba que exista un registro afectado
+        # por la operación de actualización.
+        return cursor.rowcount > 0
+
+    except sqlite3.IntegrityError:
+        conexion.rollback()
+        return False
+
+    finally:
+        conexion.close()
+
+
+def desactivar_partida(partida_id):
+    """
+    Deshabilita una partida sin eliminarla
+    permanentemente de la base de datos.
+    """
+
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+
+    try:
+        # El valor 0 representa una partida inactiva.
+        # Se conserva el registro para mantener sus
+        # futuras relaciones con APU y presupuestos.
+        cursor.execute("""
+            UPDATE partidas
+            SET activo = 0
+            WHERE id = ?
+        """, (partida_id,))
+
+        conexion.commit()
+
+        return cursor.rowcount > 0
+
+    finally:
+        conexion.close()
+
+
+def activar_partida(partida_id):
+    """
+    Reactiva una partida previamente deshabilitada,
+    evitando tener que registrarla nuevamente.
+    """
+
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+
+    try:
+        # El valor 1 representa una partida activa.
+        cursor.execute("""
+            UPDATE partidas
+            SET activo = 1
+            WHERE id = ?
+        """, (partida_id,))
+
+        conexion.commit()
+
+        return cursor.rowcount > 0
+
+    finally:
+        conexion.close()
+
+
+def buscar_partidas(texto):
+    """
+    Busca partidas mediante su código, nombre
+    o descripción.
+    """
+
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+
+    # El símbolo % permite encontrar coincidencias
+    # parciales sin escribir el nombre completo.
+    busqueda = f"%{texto.strip()}%"
+
+    try:
+        # LIKE permite comparar el texto ingresado.
+        # OR busca coincidencias en cualquiera de
+        # los tres campos definidos.
+        cursor.execute("""
+            SELECT
+                id,
+                codigo,
+                nombre,
+                descripcion,
+                unidad,
+                activo
+            FROM partidas
+            WHERE codigo LIKE ?
+               OR nombre LIKE ?
+               OR descripcion LIKE ?
             ORDER BY nombre ASC
         """, (
             busqueda,

@@ -78,3 +78,55 @@ No se reportaron defectos durante las pruebas.
 Las capturas de pantalla se encuentran documentadas
 en la Evidencia N.º 02 del Registro de evidencias.
 
+---
+
+## Mejora N.º 03 - Implementación del maestro de partidas
+
+**Fecha:** 27/11/2026  
+**Versión base:** 2.0  
+**Estado:** Completado
+
+### Objetivo
+
+Implementar un catálogo centralizado de partidas para organizar las
+actividades constructivas utilizadas por la empresa y facilitar su
+futura integración con el módulo APU.
+
+### Cambios realizados
+
+- Creación de la tabla partidas en SQLite.
+- Implementación de funciones de registro, consulta y actualización.
+- Validación de códigos únicos y campos obligatorios.
+- Implementación de búsqueda por código, nombre y descripción.
+- Incorporación de funciones de activación y desactivación.
+- Creación de la interfaz gráfica del maestro de partidas.
+- Diferenciación de permisos entre Administración y Gerencia.
+- Integración del maestro de partidas en todos los módulos.
+- Unificación del nombre de usuario y cierre de sesión en el menú lateral.
+
+### Archivos modificados
+
+- sefel/database.py
+- sefel/main_view.py
+- sefel/resources_view.py
+- sefel/budget_view.py
+- sefel/expenses_view.py
+- sefel/compare_view.py
+
+### Archivo creado
+
+- sefel/partidas_view.py
+
+### Resultado obtenido
+
+El maestro de partidas funciona correctamente según las pruebas
+manuales realizadas. Se comprobó la persistencia de los datos,
+las validaciones y las restricciones de acceso según el rol.
+
+No se reportaron defectos durante las pruebas ejecutadas.
+
+La estructura queda preparada para su futura integración con
+el módulo de Análisis de Precios Unitarios (APU).
+
+Los cambios locales de sefel.db no se incluyen en el commit,
+para evitar incorporar los registros ficticios de las pruebas.

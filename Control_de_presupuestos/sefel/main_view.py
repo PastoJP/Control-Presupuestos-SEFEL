@@ -132,6 +132,7 @@ class MainView:
         opciones = [
             ("Obras", None),
             ("Recursos", self.ir_recursos),
+            ("Partidas", self.ir_partidas),
             ("Presupuestos", self.ir_presupuestos),
             ("Gastos", self.ir_gastos),
             ("Comparar costos", self.ir_comparacion)
@@ -201,24 +202,25 @@ class MainView:
             pady=(10, 5)
         )
 
-        cerrar = tk.Label(
+        # Botón que permite finalizar la sesión actual
+        # desde la pantalla principal de Obras.
+        #
+        # Utilizamos tk.Button para mantener el mismo
+        # diseño y funcionamiento que en los demás módulos.
+
+        tk.Button(
             menu,
             text="Cerrar sesión",
+            command=self.cerrar_sesion,
             bg=COLOR_BLANCO,
             fg=COLOR_TEXTO,
+            relief="flat",
             font=("Arial", 8, "bold"),
             cursor="hand2"
-        )
-
-        cerrar.pack(
+        ).pack(
             anchor="w",
-            padx=20,
+            padx=15,
             pady=(0, 20)
-        )
-
-        cerrar.bind(
-            "<Button-1>",
-            self.cerrar_sesion
         )
 
     def crear_contenido_principal(self, cuerpo):
@@ -532,6 +534,24 @@ class MainView:
             self.usuario,
             self.rol
         )
+    def ir_partidas(self):
+
+        # Importamos la pantalla del maestro de partidas
+        # dentro de la función para evitar importaciones
+        # circulares entre los diferentes módulos.
+
+        from .partidas_view import PartidasView
+
+        # Abrimos el maestro de partidas conservando
+        # la ventana principal, el usuario y su rol.
+        # Esto evita que Gerencia obtenga permisos
+        # de administrador durante la navegación.
+
+        PartidasView(
+            self.ventana,
+            self.usuario,
+            self.rol
+        )
 
     def ir_presupuestos(self):
         from .budget_view import BudgetView
@@ -560,11 +580,25 @@ class MainView:
             rol=self.rol
         )
 
-    def cerrar_sesion(self, event=None):
+    # ==================================================
+    # CIERRE DE SESIÓN
+    # ==================================================
+
+    def cerrar_sesion(self):
+
+        # Importamos la pantalla de inicio de sesión
+        # dentro de la función para evitar dependencias
+        # circulares entre los módulos.
+
         from .login import LoginView
+
+        # Elimina los componentes gráficos de la pantalla
+        # principal sin cerrar la aplicación ni eliminar
+        # los datos almacenados en la base de datos.
 
         self.limpiar_ventana()
 
-        LoginView(
-            self.ventana
-        )
+        # Regresa a la pantalla de inicio de sesión
+        # para permitir el ingreso de otro usuario.
+
+        LoginView(self.ventana)
