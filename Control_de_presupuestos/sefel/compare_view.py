@@ -113,7 +113,7 @@ class CompareView:
                 menu,
                 text=texto,
                 command=comando,
-                bg="#e8f1f5" if seleccionado else COLOR_BLANCO,
+                bg="#F8E5E5" if seleccionado else COLOR_BLANCO,
                 fg=COLOR_TEXTO,
                 relief="flat",
                 anchor="w",

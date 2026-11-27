@@ -137,7 +137,7 @@ class MainView:
 
         for texto, comando in opciones:
 
-            bg = "#e8f1f5" if texto == "Obras" else COLOR_BLANCO
+            bg = "#F8E5E5" if texto == "Obras" else COLOR_BLANCO
 
             fuente = (
                 FUENTE_NORMAL_NEGRITA
@@ -151,7 +151,7 @@ class MainView:
                 command=comando,
                 bg=bg,
                 fg=COLOR_TEXTO,
-                activebackground="#e8f1f5",
+                activebackground="#F8E5E5",
                 relief="flat",
                 anchor="w",
                 font=fuente,
