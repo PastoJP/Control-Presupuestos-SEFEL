@@ -110,12 +110,22 @@ class BudgetView:
             pady=(20, 10)
         )
 
+
+        # Define las opciones de navegación del menú lateral.
+        # Cada opción contiene el nombre del módulo y la
+        # función que permite acceder a su pantalla.
+        #
+        # Se incorpora Recursos para mantener disponible
+        # el catálogo desde el módulo de Presupuestos.
+
         opciones = [
             ("Obras", self.ir_obras),
+            ("Recursos", self.ir_recursos),
             ("Presupuestos", None),
             ("Gastos", self.ir_gastos),
             ("Comparar costos", self.ir_comparacion)
         ]
+
 
         for texto, comando in opciones:
             seleccionado = texto == "Presupuestos"
@@ -486,6 +496,29 @@ class BudgetView:
                     f"$ {monto:,.0f}"
                 )
             )
+
+    def ir_recursos(self):
+        """
+        Permite acceder al maestro de recursos desde
+        la pantalla de Presupuestos.
+        """
+
+        # Importamos la clase encargada de construir
+        # la interfaz gráfica del maestro de recursos.
+        # La importación se realiza dentro de la función
+        # para evitar dependencias circulares.
+
+        from .resources_view import ResourcesView
+
+        # Reutilizamos la ventana principal y enviamos
+        # el usuario y su rol actual para conservar
+        # los permisos establecidos al iniciar sesión.
+
+        ResourcesView(
+            self.ventana,
+            self.usuario,
+            self.rol
+        )
 
     def ir_obras(self):
         from .main_view import MainView

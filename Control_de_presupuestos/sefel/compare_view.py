@@ -99,8 +99,18 @@ class CompareView:
             font=("Arial", 8, "bold")
         ).pack(anchor="w", padx=20, pady=(20, 10))
 
+        # Define las opciones disponibles en el menú lateral
+        # del módulo de comparación de costos.
+        #
+        # Se agrega Recursos para permitir acceder al
+        # catálogo sin necesidad de regresar a Obras.
+        #
+        # None indica que Comparar costos es la pantalla
+        # que se encuentra actualmente abierta.
+
         opciones = [
             ("Obras", self.ir_obras),
+            ("Recursos", self.ir_recursos),
             ("Presupuestos", self.ir_presupuestos),
             ("Gastos", self.ir_gastos),
             ("Comparar costos", None)
@@ -449,6 +459,27 @@ class CompareView:
     def filtrar_comparacion(self, event=None):
         texto = self.entrada_busqueda.get()
         self.cargar_comparacion(texto)
+
+    def ir_recursos(self):
+        """
+        Permite acceder al maestro de recursos desde
+        el módulo de comparación de costos.
+        """
+
+        # Importa la clase ResourcesView, encargada
+        # de mostrar y administrar el catálogo de recursos.
+
+        from .resources_view import ResourcesView
+
+        # Envía la ventana, el usuario y el rol actual.
+        # Esto permite cambiar de pantalla sin perder
+        # la sesión ni modificar los permisos asignados.
+
+        ResourcesView(
+            self.ventana,
+            self.usuario,
+            self.rol
+        )
 
     def ir_obras(self):
         from .main_view import MainView

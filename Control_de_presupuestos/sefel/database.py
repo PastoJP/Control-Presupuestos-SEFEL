@@ -295,6 +295,36 @@ def crear_base_datos():
         )
     """)
 
+
+    # MAESTRO DE RECURSOS
+    # Crea una tabla en SQLite para almacenar los recursos
+    # utilizados en la elaboración de APU y presupuestos.
+    # IF NOT EXISTS evita volver a crear la tabla si ya existe,
+    # conservando los registros almacenados anteriormente.
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS recursos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            codigo TEXT NOT NULL UNIQUE COLLATE NOCASE,
+            nombre TEXT NOT NULL,
+            categoria TEXT NOT NULL CHECK (
+                categoria IN (
+                    'Material',
+                    'Mano de obra',
+                    'Equipo',
+                    'Herramienta'
+                )
+            ),
+            unidad TEXT NOT NULL,
+            precio_unitario REAL NOT NULL CHECK (
+                precio_unitario >= 0
+            ),
+            activo INTEGER NOT NULL DEFAULT 1 CHECK (
+                activo IN (0, 1)
+            )
+        )
+    """)
+
     conexion.commit()
     conexion.close()
 
@@ -603,3 +633,264 @@ def actualizar_gasto(
 
     conexion.commit()
     conexion.close()
+
+
+# ==========================================================
+# MAESTRO DE RECURSOS
+# ==========================================================
+
+# Estas funciones permiten administrar los recursos
+# almacenados en la base de datos SQLite.
+# Posteriormente serán utilizadas por la interfaz gráfica
+# y por el módulo de Análisis de Precios Unitarios (APU).
+
+
+def agregar_recurso(codigo, nombre, categoria, unidad, precio_unitario):
+    """
+    Registra un nuevo recurso en la base de datos.
+
+    Recibe el código, nombre, categoría, unidad de medida
+    y precio unitario ingresados por el usuario.
+    El recurso queda activo de manera predeterminada.
+    """
+
+    # Abre una conexión con la base de datos existente.
+    conexion = obtener_conexion()
+
+    # El cursor permite ejecutar instrucciones SQL.
+    cursor = conexion.cursor()
+
+    try:
+        # INSERT INTO permite agregar un nuevo registro.
+        # Los signos de interrogación representan parámetros.
+        # Evitan concatenar directamente los datos ingresados
+        # por el usuario y ayudan a prevenir inyecciones SQL.
+
+        cursor.execute("""
+            INSERT INTO recursos (
+                codigo,
+                nombre,
+                categoria,
+                unidad,
+                precio_unitario
+            )
+            VALUES (?, ?, ?, ?, ?)
+        """, (
+            codigo.strip(),
+            nombre.strip(),
+            categoria,
+            unidad.strip(),
+            precio_unitario
+        ))
+
+        # Guarda permanentemente los cambios realizados.
+        conexion.commit()
+
+        # Devuelve True para indicar un registro exitoso.
+        return True
+
+    except sqlite3.IntegrityError:
+
+        # Captura errores relacionados con las restricciones
+        # de la tabla, como códigos duplicados o precios negativos.
+        conexion.rollback()
+        return False
+
+    finally:
+
+        # Cierra la conexión aunque ocurra un error.
+        conexion.close()
+
+
+def obtener_recursos():
+    """
+    Consulta todos los recursos registrados, incluyendo
+    aquellos que se encuentran activos e inactivos.
+    """
+
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+
+    try:
+        # SELECT permite consultar los campos de la tabla.
+        # ORDER BY organiza los resultados por nombre.
+
+        cursor.execute("""
+            SELECT
+                id,
+                codigo,
+                nombre,
+                categoria,
+                unidad,
+                precio_unitario,
+                activo
+            FROM recursos
+            ORDER BY nombre ASC
+        """)
+
+        # fetchall recupera todos los registros encontrados
+        # y los devuelve como una lista de tuplas.
+        return cursor.fetchall()
+
+    finally:
+        conexion.close()
+
+
+def actualizar_recurso(
+    recurso_id,
+    codigo,
+    nombre,
+    categoria,
+    unidad,
+    precio_unitario
+):
+    """
+    Modifica la información de un recurso existente.
+
+    Utiliza el identificador interno del recurso para
+    actualizar únicamente el registro seleccionado.
+    """
+
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+
+    try:
+        # UPDATE modifica los campos de un registro existente.
+        # WHERE id = ? evita modificar todos los recursos
+        # y limita el cambio al recurso seleccionado.
+
+        cursor.execute("""
+            UPDATE recursos
+            SET
+                codigo = ?,
+                nombre = ?,
+                categoria = ?,
+                unidad = ?,
+                precio_unitario = ?
+            WHERE id = ?
+        """, (
+            codigo.strip(),
+            nombre.strip(),
+            categoria,
+            unidad.strip(),
+            precio_unitario,
+            recurso_id
+        ))
+
+        conexion.commit()
+
+        # rowcount indica cuántos registros fueron modificados.
+        # Si no existe el recurso, devuelve False.
+        return cursor.rowcount > 0
+
+    except sqlite3.IntegrityError:
+        conexion.rollback()
+        return False
+
+    finally:
+        conexion.close()
+
+
+def desactivar_recurso(recurso_id):
+    """
+    Cambia el estado de un recurso de activo a inactivo.
+
+    No elimina el registro de la base de datos, permitiendo
+    conservar su información y sus futuras relaciones
+    con los APU y presupuestos.
+    """
+
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+
+    try:
+        # El valor 0 representa un recurso inactivo.
+        # Se modifica únicamente el campo activo.
+
+        cursor.execute("""
+            UPDATE recursos
+            SET activo = 0
+            WHERE id = ?
+        """, (recurso_id,))
+
+        conexion.commit()
+
+        return cursor.rowcount > 0
+
+    finally:
+        conexion.close()
+
+
+def activar_recurso(recurso_id):
+    """
+    Permite volver a habilitar un recurso desactivado
+    sin tener que registrarlo nuevamente.
+    """
+
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+
+    try:
+        # El valor 1 representa un recurso activo.
+
+        cursor.execute("""
+            UPDATE recursos
+            SET activo = 1
+            WHERE id = ?
+        """, (recurso_id,))
+
+        conexion.commit()
+
+        return cursor.rowcount > 0
+
+    finally:
+        conexion.close()
+
+
+def buscar_recursos(texto):
+    """
+    Busca recursos utilizando su código, nombre o categoría.
+
+    Permite encontrar coincidencias parciales sin necesidad
+    de escribir el nombre completo del recurso.
+    """
+
+    conexion = obtener_conexion()
+    cursor = conexion.cursor()
+
+    # strip elimina espacios innecesarios al inicio y al final.
+    # El símbolo % permite buscar coincidencias parciales.
+    # Por ejemplo, buscar "cem" puede encontrar "Cemento".
+
+    busqueda = f"%{texto.strip()}%"
+
+    try:
+        # LIKE compara el texto ingresado con los datos
+        # almacenados en los campos seleccionados.
+        # OR permite encontrar coincidencias en cualquiera
+        # de los tres campos consultados.
+
+        cursor.execute("""
+            SELECT
+                id,
+                codigo,
+                nombre,
+                categoria,
+                unidad,
+                precio_unitario,
+                activo
+            FROM recursos
+            WHERE codigo LIKE ?
+               OR nombre LIKE ?
+               OR categoria LIKE ?
+            ORDER BY nombre ASC
+        """, (
+            busqueda,
+            busqueda,
+            busqueda
+        ))
+
+        return cursor.fetchall()
+
+    finally:
+        conexion.close()

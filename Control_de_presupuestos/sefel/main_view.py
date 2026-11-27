@@ -120,20 +120,23 @@ class MainView:
             pady=(20, 10)
         )
 
-        if self.rol == "gerencia":
-            opciones = [
-                ("Obras", None),
-                ("Presupuestos", self.ir_presupuestos),
-                ("Gastos", self.ir_gastos),
-                ("Comparar costos", self.ir_comparacion)
-            ]
-        else:
-            opciones = [
-                ("Obras", None),
-                ("Presupuestos", self.ir_presupuestos),
-                ("Gastos", self.ir_gastos),
-                ("Comparar costos", self.ir_comparacion)
-            ]
+
+        # Define los módulos disponibles en el menú lateral.
+        # Administración y Gerencia pueden acceder a las
+        # mismas pantallas, pero cada módulo restringe sus
+        # operaciones según el rol del usuario.
+        #
+        # Recursos permite acceder al catálogo centralizado
+        # de materiales, mano de obra, equipos y herramientas.
+
+        opciones = [
+            ("Obras", None),
+            ("Recursos", self.ir_recursos),
+            ("Presupuestos", self.ir_presupuestos),
+            ("Gastos", self.ir_gastos),
+            ("Comparar costos", self.ir_comparacion)
+        ]
+
 
         for texto, comando in opciones:
 
@@ -500,6 +503,34 @@ class MainView:
             self.usuario,
             rol=self.rol,
             obra_seleccionada=nombre_obra
+        )
+
+
+    def ir_recursos(self):
+        """
+        Abre la pantalla del maestro de recursos.
+
+        Permite acceder al catálogo desde el menú lateral,
+        conservando la sesión y los permisos del usuario.
+        """
+
+        # Importamos ResourcesView dentro de la función
+        # para evitar dependencias circulares entre módulos.
+
+        from .resources_view import ResourcesView
+
+        # Enviamos la ventana actual para reutilizarla
+        # sin abrir una nueva instancia de la aplicación.
+        #
+        # self.usuario conserva la identidad del usuario.
+        # self.rol conserva sus permisos de acceso.
+        # Esto evita que Gerencia obtenga permisos de
+        # administrador al cambiar de pantalla.
+
+        ResourcesView(
+            self.ventana,
+            self.usuario,
+            self.rol
         )
 
     def ir_presupuestos(self):

@@ -118,8 +118,18 @@ class ExpensesView:
             pady=(20, 10)
         )
 
+        # Define los módulos disponibles en el menú lateral.
+        # Cada opción relaciona el nombre de una pantalla
+        # con la función encargada de abrirla.
+        #
+        # Se incorpora Recursos para permitir consultar
+        # el catálogo desde la pantalla de Gastos.
+        #
+        # None indica que Gastos es la pantalla actual.
+
         opciones = [
             ("Obras", self.ir_obras),
+            ("Recursos", self.ir_recursos),
             ("Presupuestos", self.ir_presupuestos),
             ("Gastos", None),
             ("Comparar costos", self.ir_comparacion)
@@ -990,6 +1000,29 @@ class ExpensesView:
             )
 
             self.ids_gastos[fila] = gasto_id
+
+    def ir_recursos(self):
+        """
+        Permite acceder al maestro de recursos desde
+        el módulo de Gastos.
+        """
+
+        # Importa la clase que construye la interfaz
+        # gráfica del maestro de recursos.
+        # Se importa dentro de la función para evitar
+        # dependencias circulares entre los módulos.
+
+        from .resources_view import ResourcesView
+
+        # Reutiliza la ventana principal de la aplicación.
+        # Conserva el usuario que inició sesión y su rol,
+        # evitando que los permisos cambien al navegar.
+
+        ResourcesView(
+            self.ventana,
+            self.usuario,
+            self.rol
+        )
 
     # NAVEGACIÓN
 
